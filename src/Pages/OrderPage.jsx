@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
 import { Container, Row, Col, Form, Button } from 'react-bootstrap';
 import { TiDelete } from 'react-icons/ti';
+
+import PaymentTypeSection from '../Components/PaymentTypeSection';
 
 const StyledContainer = styled(Container)`
   background: #fafafa;
@@ -18,32 +18,6 @@ const StyledForm = styled(Form)`
 
 const Asterisk = styled.span`
   color: red;
-`;
-
-const Calendar = styled.div`
-  .react-datepicker-wrapper {
-    width: 100%;
-  }
-`;
-
-const StyledDatePicker = styled(DatePicker)`
-  width: 100%;
-  padding: 0.375rem 0.75rem;
-  line-height: 1.5;
-  color: #495057;
-  background-color: #fff;
-  background-clip: padding-box;
-  border: 1px solid #ced4da;
-  border-radius: 0.25rem;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-
-  &:hover {
-    color: #495057;
-    background-color: #fff;
-    border-color: #80bdff;
-    outline: 0;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-  }
 `;
 
 const DeleteButton = styled(TiDelete)`
@@ -61,14 +35,83 @@ const NewItemButton = styled(Button)`
 `;
 
 function OrderPage() {
-  const [date, setDate] = useState(new Date());
+  const [employeeList, setEmployeeList] = useState([]);
+  const [distributionCenters] = useState([
+    {
+      id: 1,
+      name: 'DC Tangerang',
+    },
+    {
+      id: 2,
+      name: 'DC Cikarang',
+    },
+  ]);
+  const [paymentTypes] = useState([
+    {
+      id: 1,
+      name: 'Cash H+1',
+    },
+    {
+      id: 2,
+      name: 'Cash H+3',
+    },
+    {
+      id: 3,
+      name: 'Cash H+7',
+    },
+    {
+      id: 4,
+      name: 'Transfer H+1',
+    },
+    {
+      id: 5,
+      name: 'Cash H+3',
+    },
+    {
+      id: 6,
+      name: 'Cash H+7',
+    },
+  ]);
+
+  const [order, setOrder] = useState({
+    name: '',
+    distributionCenter: '',
+    paymentType: '',
+    expiredDate: new Date(),
+    notes: '',
+    orderItems: [],
+  });
+
+  const getAllEmployee = async () => {
+    try {
+      const response = await fetch(
+        `http://dummy.restapiexample.com/api/v1/employees`
+      );
+      const result = await response.json();
+
+      setEmployeeList(result.data);
+    } catch (error) {
+      return error;
+    }
+  };
+
+  useEffect(() => {
+    getAllEmployee();
+  }, []);
+
+  const handleChange = (event) => {
+    setOrder({
+      ...order,
+      [event.target.name]: event.target.value,
+    });
+  };
 
   return (
     <StyledContainer>
       <h3>Create Order</h3>
 
       <StyledForm>
-        <Form.Row>
+        <Form.Row id="detail-section">
           <Col md={4}>
             <p>Detail</p>
           </Col>
@@ -78,54 +121,53 @@ function OrderPage() {
                 Name
                 <Asterisk>*</Asterisk>
               </Form.Label>
-              <Form.Control as="select">
-                <option>Tiger Nixon</option>
-                <option>Garret Winters</option>
-                <option>Ashton Cox</option>
-                <option>Cedric Kelly</option>
-                <option>Brielle Williamson</option>
+              <Form.Control
+                as="select"
+                name="name"
+                onChange={handleChange}
+                defaultValue="Name"
+              >
+                <option disabled>Name</option>
+                {employeeList.map((employee) => (
+                  <option key={employee.id} value={employee.employee_name}>
+                    {employee.employee_name}
+                  </option>
+                ))}
               </Form.Control>
             </Form.Group>
             <Form.Group>
               <Form.Label>
                 Distribution Center<Asterisk>*</Asterisk>
               </Form.Label>
-              <Form.Control as="select">
-                <option>DC Tangerang</option>
-                <option>DC Cikarang</option>
+              <Form.Control
+                as="select"
+                name="distributionCenter"
+                onChange={handleChange}
+                defaultValue="No data available"
+              >
+                {order.name === '' ? (
+                  <option disabled>No data available</option>
+                ) : (
+                  <>
+                    <option disabled>Choose...</option>
+                    {distributionCenters.map((x) => (
+                      <option key={x.id} value={x.name}>
+                        {x.name}
+                      </option>
+                    ))}
+                  </>
+                )}
               </Form.Control>
             </Form.Group>
-            <Form.Row>
-              <Form.Group as={Col} md={6}>
-                <Form.Label>
-                  Payment Type<Asterisk>*</Asterisk>
-                </Form.Label>
-                <Form.Control as="select">
-                  <option>Payment Type</option>
-                  <option>Cash H+1</option>
-                  <option>Cash H+3</option>
-                  <option>Cash H+7</option>
-                  <option>Transfer H+1</option>
-                  <option>Transfer H+3</option>
-                  <option>Transfer H+7</option>
-                </Form.Control>
-              </Form.Group>
-              <Form.Group as={Col} md={6}>
-                <Form.Label>
-                  Expired Date<Asterisk>*</Asterisk>
-                </Form.Label>
-                <Calendar>
-                  <StyledDatePicker
-                    selected={date}
-                    onChange={(date) => setDate(date)}
-                  />
-                </Calendar>
-              </Form.Group>
-            </Form.Row>
-            <Form.Group>
-              <Form.Label>Notes</Form.Label>
-              <Form.Control as="textarea" rows={3} style={{ resize: 'none' }} />
-            </Form.Group>
+            {order.name !== '' && order.distributionCenter !== '' && (
+              <PaymentTypeSection
+                order={order}
+                expiredDate={order.expiredDate}
+                setOrder={setOrder}
+                handleChange={handleChange}
+                paymentTypes={paymentTypes}
+              />
+            )}
           </Col>
         </Form.Row>
         <hr />
